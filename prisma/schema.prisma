@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum Region {
+  IADVISORS
+  XADVISORS
+  FINANCIAL_SPECIALISTS
+  WADVISORS
+}
+
+enum RoundType {
+  R64
+  R32
+  S16
+  E8
+  F4
+  CHAMP
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  brackets        Bracket[]
+  adminActionLogs AdminActionLog[]
+
+  @@map("users")
+}
+
+model Entrant {
+  id           String  @id @default(cuid())
+  displayName  String
+  region       Region
+  seed         Int
+  headshotUrl  String?
+  department   String?
+  title        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  leftMatches     Match[] @relation("LeftEntrant")
+  rightMatches    Match[] @relation("RightEntrant")
+  wonMatches      Match[] @relation("WinnerEntrant")
+  picks           Pick[]
+
+  @@unique([region, seed])
+  @@map("entrants")
+}
+
+model Match {
+  id              String     @id @default(cuid())
+  round           RoundType
+  region          Region?    // null for final rounds
+  matchNumber     Int
+  leftEntrantId   String?
+  rightEntrantId  String?
+  winnerEntrantId String?
+  scheduledStart  DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  leftEntrant   Entrant? @relation("LeftEntrant", fields: [leftEntrantId], references: [id])
+  rightEntrant  Entrant? @relation("RightEntrant", fields: [rightEntrantId], references: [id])
+  winnerEntrant Entrant? @relation("WinnerEntrant", fields: [winnerEntrantId], references: [id])
+
+  picks Pick[]
+
+  @@unique([round, region, matchNumber])
+  @@map("matches")
+}
+
+model Bracket {
+  id              String    @id @default(cuid())
+  userId          String
+  lockedAt        DateTime?
+  isAdminOverride Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id])
+  picks Pick[]
+
+  @@map("brackets")
+}
+
+model Pick {
+  id                   String @id @default(cuid())
+  bracketId            String
+  matchId              String
+  pickedWinnerEntrantId String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  bracket             Bracket @relation(fields: [bracketId], references: [id])
+  match               Match   @relation(fields: [matchId], references: [id])
+  pickedWinnerEntrant Entrant @relation(fields: [pickedWinnerEntrantId], references: [id])
+
+  @@unique([bracketId, matchId])
+  @@map("picks")
+}
+
+model AdminActionLog {
+  id          String   @id @default(cuid())
+  adminUserId String
+  actionType  String
+  payloadJson String
+  createdAt   DateTime @default(now())
+
+  adminUser User @relation(fields: [adminUserId], references: [id])
+
+  @@map("admin_action_logs")
+}
+
+model Settings {
+  id           String   @id @default("singleton")
+  lockDatetime DateTime?
+  scoringJson  String   @default("{\"R64\": 1, \"R32\": 2, \"S16\": 4, \"E8\": 8, \"F4\": 16, \"CHAMP\": 32}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("settings")
+}
