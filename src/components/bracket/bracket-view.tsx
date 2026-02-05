@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { BracketMatch } from './bracket-match'
-import { BracketRegion } from './bracket-region'
+import { useState, useEffect, useCallback } from 'react'
+import { computeVirtualEntrants, getDownstreamMatchIds, REGIONS, ROUND_ORDER } from '@/lib/bracket-progression'
+import type { MatchInfo, EntrantInfo } from '@/lib/bracket-progression'
 
 interface BracketViewProps {
   bracketId: string
@@ -10,178 +10,271 @@ interface BracketViewProps {
   isAdmin: boolean
 }
 
-interface MatchData {
-  id: string
-  round: string
-  region?: string
-  matchNumber: number
-  leftEntrant?: { id: string; displayName: string; seed: number }
-  rightEntrant?: { id: string; displayName: string; seed: number }
-  winnerEntrant?: { id: string; displayName: string; seed: number }
-  userPick?: { id: string; pickedWinnerEntrantId: string }
+const ROUND_LABELS: Record<string, string> = {
+  R64: 'Round of 64',
+  R32: 'Round of 32',
+  S16: 'Sweet 16',
+  E8: 'Elite 8',
+  F4: 'Final Four',
+  CHAMP: 'Championship',
 }
 
-interface RegionData {
-  region: string
-  matches: MatchData[]
+const REGION_LABELS: Record<string, string> = {
+  IADVISORS: 'iAdvisors',
+  XADVISORS: 'xAdvisors',
+  FINANCIAL_SPECIALISTS: 'Financial Specialists',
+  WADVISORS: 'wAdvisors',
+}
+
+const REGION_COLORS: Record<string, string> = {
+  IADVISORS: 'from-blue-500 to-blue-600',
+  XADVISORS: 'from-green-500 to-green-600',
+  FINANCIAL_SPECIALISTS: 'from-purple-500 to-purple-600',
+  WADVISORS: 'from-red-500 to-red-600',
 }
 
 export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) {
-  const [bracketData, setBracketData] = useState<RegionData[]>([])
-  const [finalFourMatches, setFinalFourMatches] = useState<MatchData[]>([])
-  const [championshipMatch, setChampionshipMatch] = useState<MatchData | null>(null)
+  const [matches, setMatches] = useState<MatchInfo[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    fetchBracketData()
-  }, [bracketId])
-
-  const fetchBracketData = async () => {
+  const fetchBracketData = useCallback(async () => {
     try {
-      const response = await fetch(`/api/bracket/${bracketId}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch bracket data')
-      }
-      
-      const data = await response.json()
-      
-      // Organize data by regions
-      const regions = ['IADVISORS', 'XADVISORS', 'FINANCIAL_SPECIALISTS', 'WADVISORS']
-      const regionData: RegionData[] = []
-      
-      regions.forEach(region => {
-        const regionMatches = data.matches.filter((match: MatchData) => match.region === region)
-        regionData.push({
-          region,
-          matches: regionMatches
-        })
-      })
-      
-      setBracketData(regionData)
-      
-      // Set Final Four and Championship matches
-      const finalFour = data.matches.filter((match: MatchData) => match.round === 'F4')
-      const championship = data.matches.find((match: MatchData) => match.round === 'CHAMP')
-      
-      setFinalFourMatches(finalFour)
-      setChampionshipMatch(championship)
-      
+      const res = await fetch(`/api/bracket/${bracketId}`)
+      if (!res.ok) throw new Error('Failed to fetch')
+      const data = await res.json()
+      setMatches(data.matches)
     } catch (err) {
-      setError('Failed to load bracket data')
       console.error(err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [bracketId])
 
-  const handlePickUpdate = async (matchId: string, entrantId: string) => {
-    if (isLocked && !isAdmin) {
-      alert('Bracket is locked! Cannot make changes.')
-      return
-    }
+  useEffect(() => { fetchBracketData() }, [fetchBracketData])
+
+  const handlePick = async (matchId: string, entrantId: string) => {
+    if (isLocked && !isAdmin) return
+    setSaving(true)
 
     try {
-      const response = await fetch('/api/picks', {
+      const res = await fetch('/api/picks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bracketId,
-          matchId,
-          pickedWinnerEntrantId: entrantId
-        })
+        body: JSON.stringify({ bracketId, matchId, pickedWinnerEntrantId: entrantId }),
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to save pick')
-      }
-
-      // Refresh bracket data
+      if (!res.ok) throw new Error('Failed to save')
       await fetchBracketData()
-      
     } catch (err) {
-      alert('Failed to save pick. Please try again.')
-      console.error(err)
+      alert('Failed to save pick')
+    } finally {
+      setSaving(false)
     }
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-xl text-gray-600">Loading bracket...</div>
-      </div>
-    )
+    return <div className="text-center py-16 text-xl text-gray-500">Loading bracket...</div>
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-xl text-red-600">{error}</div>
-      </div>
-    )
-  }
+  // Separate regional and cross-regional matches
+  const regionalRounds = ['R64', 'R32', 'S16', 'E8']
+  const canPick = !isLocked || isAdmin
 
   return (
     <div className="space-y-8">
-      {/* Lock Status Banner */}
       {isLocked && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-          <div className="text-red-800 font-semibold">
-            🔒 Bracket Locked - No more changes allowed
-            {isAdmin && <span className="ml-2">(Admin override available)</span>}
-          </div>
+          <span className="text-red-800 font-semibold">
+            🔒 Bracket Locked — No more changes allowed
+            {isAdmin && ' (Admin override active)'}
+          </span>
         </div>
       )}
 
-      {/* Regions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {bracketData.map((region) => (
-          <BracketRegion
-            key={region.region}
-            region={region.region}
-            matches={region.matches}
-            onPickUpdate={handlePickUpdate}
-            isLocked={isLocked && !isAdmin}
+      {saving && (
+        <div className="fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50">
+          Saving...
+        </div>
+      )}
+
+      {/* Regional Brackets */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {REGIONS.map(region => (
+          <RegionBracket
+            key={region}
+            region={region}
+            matches={matches}
+            allMatches={matches}
+            onPick={handlePick}
+            canPick={canPick}
           />
         ))}
       </div>
 
       {/* Final Four */}
-      {finalFourMatches.length > 0 && (
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h3 className="text-2xl font-bold text-center mb-6 text-indigo-600">
-            🏆 Final Four
-          </h3>
-          <div className="flex justify-center space-x-8">
-            {finalFourMatches.map((match) => (
-              <BracketMatch
-                key={match.id}
-                match={match}
-                onPickUpdate={handlePickUpdate}
-                isLocked={isLocked && !isAdmin}
-                size="large"
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      <FinalRounds matches={matches} onPick={handlePick} canPick={canPick} />
+    </div>
+  )
+}
 
-      {/* Championship */}
-      {championshipMatch && (
-        <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg shadow-lg p-8">
-          <h3 className="text-3xl font-bold text-center mb-6 text-yellow-600">
-            👑 Championship
-          </h3>
-          <div className="flex justify-center">
-            <BracketMatch
-              match={championshipMatch}
-              onPickUpdate={handlePickUpdate}
-              isLocked={isLocked && !isAdmin}
-              size="xlarge"
-            />
-          </div>
+// --- Region Bracket ---
+function RegionBracket({
+  region,
+  matches,
+  allMatches,
+  onPick,
+  canPick,
+}: {
+  region: string
+  matches: MatchInfo[]
+  allMatches: MatchInfo[]
+  onPick: (matchId: string, entrantId: string) => void
+  canPick: boolean
+}) {
+  const regionalRounds = ['R64', 'R32', 'S16', 'E8'] as const
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+      <div className={`bg-gradient-to-r ${REGION_COLORS[region]} text-white p-3`}>
+        <h3 className="text-lg font-bold text-center">{REGION_LABELS[region]}</h3>
+      </div>
+      <div className="p-3 overflow-x-auto">
+        <div className="flex gap-3 min-w-[700px]">
+          {regionalRounds.map(round => {
+            const roundMatches = allMatches
+              .filter(m => m.round === round && m.region === region)
+              .sort((a, b) => a.matchNumber - b.matchNumber)
+
+            return (
+              <div key={round} className="flex-1 min-w-[160px]">
+                <div className="text-xs font-semibold text-gray-500 text-center mb-2">
+                  {ROUND_LABELS[round]}
+                </div>
+                <div className="space-y-2 flex flex-col justify-around h-full">
+                  {roundMatches.map(match => (
+                    <MatchCard
+                      key={match.id}
+                      match={match}
+                      allMatches={allMatches}
+                      onPick={onPick}
+                      canPick={canPick}
+                    />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </div>
-      )}
+      </div>
+    </div>
+  )
+}
+
+// --- Final Rounds (F4 + Championship) ---
+function FinalRounds({
+  matches,
+  onPick,
+  canPick,
+}: {
+  matches: MatchInfo[]
+  onPick: (matchId: string, entrantId: string) => void
+  canPick: boolean
+}) {
+  const f4Matches = matches.filter(m => m.round === 'F4').sort((a, b) => a.matchNumber - b.matchNumber)
+  const champMatch = matches.find(m => m.round === 'CHAMP')
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <h3 className="text-2xl font-bold text-center mb-6 text-indigo-600">🏆 Final Four & Championship</h3>
+      <div className="flex flex-col items-center gap-6">
+        <div className="flex gap-8 justify-center">
+          {f4Matches.map(match => (
+            <div key={match.id} className="w-64">
+              <div className="text-xs font-semibold text-gray-500 text-center mb-2">
+                {match.matchNumber === 1 ? 'iAdvisors vs xAdvisors' : 'Fin. Specialists vs wAdvisors'}
+              </div>
+              <MatchCard match={match} allMatches={matches} onPick={onPick} canPick={canPick} />
+            </div>
+          ))}
+        </div>
+        {champMatch && (
+          <div className="w-72">
+            <div className="text-sm font-bold text-yellow-600 text-center mb-2">👑 Championship</div>
+            <MatchCard match={champMatch} allMatches={matches} onPick={onPick} canPick={canPick} isChamp />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// --- Individual Match Card ---
+function MatchCard({
+  match,
+  allMatches,
+  onPick,
+  canPick,
+  isChamp,
+}: {
+  match: MatchInfo
+  allMatches: MatchInfo[]
+  onPick: (matchId: string, entrantId: string) => void
+  canPick: boolean
+  isChamp?: boolean
+}) {
+  // Compute virtual entrants (from cascading picks for R32+)
+  const { left, right } = computeVirtualEntrants(allMatches, match)
+  const pickId = match.userPick?.pickedWinnerEntrantId
+  const bothReady = !!left && !!right
+
+  const renderEntrant = (entrant: EntrantInfo | null, side: 'left' | 'right') => {
+    if (!entrant) {
+      return (
+        <div className="flex items-center p-1.5 border-2 border-dashed border-gray-200 rounded text-gray-400 text-xs">
+          <span className="italic">TBD</span>
+        </div>
+      )
+    }
+
+    const isPicked = pickId === entrant.id
+    const isActualWinner = match.winnerEntrant?.id === entrant.id
+    const isActualLoser = match.winnerEntrant && match.winnerEntrant.id !== entrant.id
+    const clickable = canPick && bothReady && !match.winnerEntrant
+
+    let classes = 'flex items-center justify-between p-1.5 border-2 rounded text-xs transition-all '
+    if (isActualWinner) {
+      classes += 'bg-green-100 border-green-500 text-green-800 font-bold '
+    } else if (isActualLoser) {
+      classes += 'bg-gray-100 border-gray-300 text-gray-400 line-through '
+    } else if (isPicked) {
+      classes += 'bg-blue-100 border-blue-500 text-blue-800 font-semibold '
+    } else {
+      classes += 'bg-white border-gray-200 '
+      if (clickable) classes += 'hover:border-blue-400 hover:bg-blue-50 cursor-pointer '
+    }
+
+    return (
+      <div
+        className={classes}
+        onClick={() => clickable && onPick(match.id, entrant.id)}
+      >
+        <div className="flex items-center gap-1 overflow-hidden">
+          <span className="bg-gray-200 text-gray-600 px-1 rounded text-[10px] font-bold shrink-0">
+            {entrant.seed}
+          </span>
+          <span className="truncate">{entrant.displayName}</span>
+        </div>
+        {isPicked && <span className="text-blue-500 shrink-0">✓</span>}
+        {isActualWinner && <span className="shrink-0">🏆</span>}
+      </div>
+    )
+  }
+
+  return (
+    <div className={`rounded border ${isChamp ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200 bg-gray-50'} p-1.5 space-y-1`}>
+      {renderEntrant(left, 'left')}
+      <div className="text-center text-[10px] text-gray-400">vs</div>
+      {renderEntrant(right, 'right')}
     </div>
   )
 }
