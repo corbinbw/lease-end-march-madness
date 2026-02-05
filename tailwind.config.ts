@@ -10,36 +10,36 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Lease End brand colors
+        // Lease End brand colors - matched to leaseend.com
         navy: {
-          50: '#f0f4f8',
-          100: '#d9e2ec',
-          200: '#bcccdc',
-          300: '#9fb3c8',
-          400: '#829ab1',
-          500: '#627d98',
-          600: '#486581',
-          700: '#334e68',
-          800: '#243b53',
-          900: '#102a43',
-          950: '#0a1929',
+          50: '#e8f4f8',   // light teal-blue (background)
+          100: '#d1e9ef',
+          200: '#a3d3df',
+          300: '#75bdcf',
+          400: '#47a7bf',
+          500: '#2d8aa3',
+          600: '#236d82',
+          700: '#1a5161',
+          800: '#1e3a5f',  // dark navy (cards, headers)
+          900: '#152a43',
+          950: '#0d1a2d',
         },
         gold: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
-          700: '#b45309',
-          800: '#92400e',
-          900: '#78350f',
+          50: '#faf6ed',
+          100: '#f5eddb',
+          200: '#ebdbb7',
+          300: '#e1c993',
+          400: '#c9a962', // muted gold (buttons)
+          500: '#b8944d',
+          600: '#9a7a3d',
+          700: '#7c602e',
+          800: '#5e4620',
+          900: '#402c12',
         },
         teal: {
-          400: '#2dd4bf',
-          500: '#14b8a6',
-          600: '#0d9488',
+          400: '#47a7bf',
+          500: '#2d8aa3',
+          600: '#236d82',
         },
       },
     },

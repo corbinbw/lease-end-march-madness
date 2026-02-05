@@ -4,31 +4,33 @@
 
 @layer base {
   :root {
-    --background: 240 10% 96%;
-    --foreground: 210 40% 15%;
+    /* Light mode - matches leaseend.com light teal aesthetic */
+    --background: 190 40% 94%;
+    --foreground: 210 50% 20%;
     --card: 0 0% 100%;
-    --card-foreground: 210 40% 15%;
-    --primary: 210 60% 25%;
+    --card-foreground: 210 50% 20%;
+    --primary: 210 55% 25%;
     --primary-foreground: 0 0% 100%;
-    --accent: 45 96% 53%;
-    --accent-foreground: 210 40% 15%;
-    --muted: 210 20% 90%;
-    --muted-foreground: 210 20% 40%;
-    --border: 210 20% 85%;
+    --accent: 40 50% 58%;
+    --accent-foreground: 210 50% 15%;
+    --muted: 190 30% 88%;
+    --muted-foreground: 210 20% 45%;
+    --border: 190 20% 82%;
   }
 
   .dark {
-    --background: 210 50% 8%;
-    --foreground: 210 20% 95%;
-    --card: 210 50% 12%;
-    --card-foreground: 210 20% 95%;
-    --primary: 45 96% 53%;
-    --primary-foreground: 210 50% 10%;
-    --accent: 45 96% 53%;
-    --accent-foreground: 210 50% 10%;
-    --muted: 210 30% 18%;
-    --muted-foreground: 210 20% 60%;
-    --border: 210 30% 22%;
+    /* Dark mode - navy/teal theme */
+    --background: 210 55% 10%;
+    --foreground: 190 30% 92%;
+    --card: 210 50% 15%;
+    --card-foreground: 190 30% 92%;
+    --primary: 40 50% 58%;
+    --primary-foreground: 210 55% 12%;
+    --accent: 40 50% 58%;
+    --accent-foreground: 210 55% 12%;
+    --muted: 210 40% 20%;
+    --muted-foreground: 190 20% 55%;
+    --border: 210 35% 25%;
   }
 
   * {
@@ -43,15 +45,19 @@
 
 @layer components {
   .card {
-    @apply bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] rounded-xl shadow-md border border-[hsl(var(--border))];
+    @apply bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] rounded-2xl shadow-lg;
   }
 
   .btn-primary {
-    @apply bg-gold-400 hover:bg-gold-500 text-navy-900 font-semibold px-6 py-2.5 rounded-lg transition-all shadow-sm hover:shadow-md;
+    @apply bg-gold-400 hover:bg-gold-500 text-navy-900 font-semibold px-6 py-3 rounded-xl transition-all shadow-sm hover:shadow-md;
   }
 
   .btn-secondary {
-    @apply bg-navy-700 hover:bg-navy-600 text-white font-semibold px-6 py-2.5 rounded-lg transition-all;
+    @apply bg-navy-800 hover:bg-navy-700 text-white font-semibold px-6 py-3 rounded-xl transition-all;
+  }
+
+  .btn-outline {
+    @apply border-2 border-navy-800 text-navy-800 hover:bg-navy-800 hover:text-white font-semibold px-6 py-3 rounded-xl transition-all;
   }
 
   .badge {
@@ -75,6 +81,11 @@
   }
 
   .input {
-    @apply w-full px-4 py-2.5 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] focus:ring-2 focus:ring-gold-400 focus:border-gold-400 outline-none transition-all;
+    @apply w-full px-4 py-3 rounded-xl border border-[hsl(var(--border))] bg-white dark:bg-navy-900 text-[hsl(var(--foreground))] focus:ring-2 focus:ring-gold-400 focus:border-gold-400 outline-none transition-all placeholder:text-gray-400;
+  }
+
+  /* Hero section navy card style like leaseend.com */
+  .hero-card {
+    @apply bg-navy-800 text-white rounded-2xl p-8;
   }
 }
