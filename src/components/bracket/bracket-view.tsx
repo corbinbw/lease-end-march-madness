@@ -96,7 +96,7 @@ export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) 
 
       {/* Saving indicator */}
       {saving && (
-        <div className="fixed top-20 right-4 bg-gold-400 text-navy-900 px-4 py-2 rounded-lg shadow-lg z-50 font-semibold">
+        <div className="fixed top-20 right-4 bg-navy-400 text-navy-900 px-4 py-2 rounded-lg shadow-lg z-50 font-semibold">
           Saving...
         </div>
       )}
@@ -190,7 +190,7 @@ function FinalRounds({
   return (
     <div className="card p-6">
       <div className="text-center mb-6">
-        <span className="inline-flex items-center bg-gold-400 text-navy-900 px-6 py-2 rounded-full font-bold text-lg">
+        <span className="inline-flex items-center bg-navy-400 text-navy-900 px-6 py-2 rounded-full font-bold text-lg">
           🏆 Final Four & Championship 🏆
         </span>
       </div>
@@ -208,7 +208,7 @@ function FinalRounds({
                 allMatches={matches}
                 onPick={onPick}
                 canPick={canPick}
-                regionColor="border-l-gold-500"
+                regionColor="border-l-navy-500"
               />
             </div>
           ))}
@@ -218,14 +218,14 @@ function FinalRounds({
         {champMatch && (
           <div className="w-80">
             <div className="text-center mb-2">
-              <span className="text-lg font-bold text-gold-600 dark:text-gold-400">👑 Championship 👑</span>
+              <span className="text-lg font-bold text-navy-500 dark:text-navy-400">👑 Championship 👑</span>
             </div>
             <MatchCard
               match={champMatch}
               allMatches={matches}
               onPick={onPick}
               canPick={canPick}
-              regionColor="border-l-gold-500"
+              regionColor="border-l-navy-500"
               isChamp
             />
           </div>
@@ -275,10 +275,10 @@ function MatchCard({
     } else if (isActualLoser) {
       classes += 'bg-navy-100 dark:bg-navy-800 border-navy-200 dark:border-navy-700 text-navy-400 dark:text-navy-500 line-through opacity-60 '
     } else if (isPicked) {
-      classes += 'bg-gold-100 dark:bg-gold-900/30 border-gold-400 text-navy-800 dark:text-gold-200 font-semibold '
+      classes += 'bg-navy-200 dark:bg-navy-800/30 border-navy-400 text-navy-800 dark:text-navy-300 font-semibold '
     } else {
       classes += 'bg-white dark:bg-navy-800 border-navy-200 dark:border-navy-600 text-navy-700 dark:text-navy-200 '
-      if (clickable) classes += 'hover:border-gold-400 hover:bg-gold-50 dark:hover:bg-gold-900/20 cursor-pointer '
+      if (clickable) classes += 'hover:border-navy-400 hover:bg-navy-100 dark:hover:bg-navy-800/20 cursor-pointer '
     }
 
     return (
@@ -293,7 +293,7 @@ function MatchCard({
           <span className="truncate">{entrant.displayName}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          {isPicked && <span className="text-gold-500">✓</span>}
+          {isPicked && <span className="text-navy-500">✓</span>}
           {isActualWinner && <span>🏆</span>}
         </div>
       </div>
@@ -301,7 +301,7 @@ function MatchCard({
   }
 
   return (
-    <div className={`rounded-xl border-l-4 ${regionColor} ${isChamp ? 'bg-gold-50 dark:bg-gold-900/20 border border-gold-200 dark:border-gold-800' : 'bg-navy-50 dark:bg-navy-800/50 border border-navy-200 dark:border-navy-700'} p-2 space-y-1.5`}>
+    <div className={`rounded-xl border-l-4 ${regionColor} ${isChamp ? 'bg-navy-100 dark:bg-navy-800/20 border border-navy-300 dark:border-gold-800' : 'bg-navy-50 dark:bg-navy-800/50 border border-navy-200 dark:border-navy-700'} p-2 space-y-1.5`}>
       {renderEntrant(left)}
       <div className="text-center text-xs text-navy-400 dark:text-navy-500 font-semibold">VS</div>
       {renderEntrant(right)}

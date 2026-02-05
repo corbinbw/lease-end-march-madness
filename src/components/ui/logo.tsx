@@ -29,7 +29,7 @@ export function Logo({ size = 'md', showMadness = false, className = '' }: LogoP
         style={{ width: 'auto', height: size === 'sm' ? '24px' : size === 'md' ? '32px' : size === 'lg' ? '46px' : '64px' }}
       />
       {showMadness && (
-        <span className={`bg-gold-400 text-navy-900 font-bold rounded ${
+        <span className={`bg-navy-400 text-white font-bold rounded ${
           size === 'xl' ? 'text-xl px-4 py-2' : 
           size === 'lg' ? 'text-lg px-3 py-1.5' : 
           size === 'md' ? 'text-sm px-2.5 py-1' : 

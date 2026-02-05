@@ -4,15 +4,15 @@
 
 @layer base {
   :root {
-    /* Light mode - matches leaseend.com light teal aesthetic */
+    /* Light mode - Lease End teal-blue aesthetic */
     --background: 190 40% 94%;
     --foreground: 210 50% 20%;
     --card: 0 0% 100%;
     --card-foreground: 210 50% 20%;
-    --primary: 210 55% 25%;
+    --primary: 190 55% 52%;
     --primary-foreground: 0 0% 100%;
-    --accent: 40 50% 58%;
-    --accent-foreground: 210 50% 15%;
+    --accent: 190 55% 52%;
+    --accent-foreground: 0 0% 100%;
     --muted: 190 30% 88%;
     --muted-foreground: 210 20% 45%;
     --border: 190 20% 82%;
@@ -24,9 +24,9 @@
     --foreground: 190 30% 92%;
     --card: 210 50% 15%;
     --card-foreground: 190 30% 92%;
-    --primary: 40 50% 58%;
+    --primary: 190 55% 52%;
     --primary-foreground: 210 55% 12%;
-    --accent: 40 50% 58%;
+    --accent: 190 55% 52%;
     --accent-foreground: 210 55% 12%;
     --muted: 210 40% 20%;
     --muted-foreground: 190 20% 55%;
@@ -49,7 +49,7 @@
   }
 
   .btn-primary {
-    @apply bg-gold-400 hover:bg-gold-500 text-navy-900 font-semibold px-6 py-3 rounded-xl transition-all shadow-sm hover:shadow-md;
+    @apply bg-navy-400 hover:bg-navy-500 text-white font-semibold px-6 py-3 rounded-xl transition-all shadow-sm hover:shadow-md;
   }
 
   .btn-secondary {
@@ -57,7 +57,7 @@
   }
 
   .btn-outline {
-    @apply border-2 border-navy-800 text-navy-800 hover:bg-navy-800 hover:text-white font-semibold px-6 py-3 rounded-xl transition-all;
+    @apply border-2 border-navy-400 text-navy-600 hover:bg-navy-400 hover:text-white font-semibold px-6 py-3 rounded-xl transition-all;
   }
 
   .badge {
@@ -77,14 +77,14 @@
   }
 
   .badge-info {
-    @apply bg-teal-500 text-white;
+    @apply bg-navy-400 text-white;
   }
 
   .input {
-    @apply w-full px-4 py-3 rounded-xl border border-[hsl(var(--border))] bg-white dark:bg-navy-900 text-[hsl(var(--foreground))] focus:ring-2 focus:ring-gold-400 focus:border-gold-400 outline-none transition-all placeholder:text-gray-400;
+    @apply w-full px-4 py-3 rounded-xl border border-[hsl(var(--border))] bg-white dark:bg-navy-900 text-[hsl(var(--foreground))] focus:ring-2 focus:ring-navy-400 focus:border-navy-400 outline-none transition-all placeholder:text-gray-400;
   }
 
-  /* Hero section navy card style like leaseend.com */
+  /* Hero section navy card style */
   .hero-card {
     @apply bg-navy-800 text-white rounded-2xl p-8;
   }

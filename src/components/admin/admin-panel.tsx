@@ -54,7 +54,7 @@ export function AdminPanel() {
           onClick={() => setTab('entrants')}
           className={`px-6 py-3 rounded-xl font-semibold transition-all ${
             tab === 'entrants' 
-              ? 'bg-gold-400 text-navy-900 shadow-md' 
+              ? 'bg-navy-400 text-navy-900 shadow-md' 
               : 'bg-white dark:bg-navy-800 text-navy-700 dark:text-navy-200 hover:bg-navy-100 dark:hover:bg-navy-700 border border-navy-200 dark:border-navy-700'
           }`}
         >
@@ -157,7 +157,7 @@ function EntrantsManager() {
   return (
     <div>
       {saving && (
-        <div className="fixed top-20 right-4 bg-gold-400 text-navy-900 px-4 py-2 rounded-lg shadow-lg z-50 font-semibold">
+        <div className="fixed top-20 right-4 bg-navy-400 text-navy-900 px-4 py-2 rounded-lg shadow-lg z-50 font-semibold">
           Saving...
         </div>
       )}
@@ -189,7 +189,7 @@ function EntrantsManager() {
         ))}
       </div>
 
-      <p className="text-sm text-navy-500 dark:text-navy-400 mb-4 card p-3 border-l-4 border-l-gold-400">
+      <p className="text-sm text-navy-500 dark:text-navy-400 mb-4 card p-3 border-l-4 border-l-navy-400">
         💡 <strong>Tip:</strong> Drag and drop entrants to reorder their seed. Click the ✏️ to edit names.
       </p>
 
@@ -279,7 +279,7 @@ function DraggableList({
             className={`
               flex items-center gap-3 px-4 py-3 border-b border-navy-100 dark:border-navy-700 last:border-b-0 transition-all
               ${isDragging ? 'opacity-40 bg-navy-100 dark:bg-navy-700' : ''}
-              ${isDragOver && !isDragging ? 'border-t-2 border-t-gold-400 bg-gold-50 dark:bg-gold-900/20' : ''}
+              ${isDragOver && !isDragging ? 'border-t-2 border-t-navy-400 bg-navy-100 dark:bg-navy-800/20' : ''}
               ${!isEditing ? 'cursor-grab active:cursor-grabbing' : ''}
             `}
           >
@@ -306,7 +306,7 @@ function DraggableList({
                 <span className="font-medium text-navy-900 dark:text-white">{entrant.displayName}</span>
                 <button
                   onClick={(e) => { e.stopPropagation(); onStartEdit(entrant) }}
-                  className="text-gold-600 dark:text-gold-400 hover:text-gold-500 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-gold-50 dark:hover:bg-gold-900/20 transition-colors"
+                  className="text-navy-500 dark:text-navy-400 hover:text-navy-500 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-navy-100 dark:hover:bg-navy-800/20 transition-colors"
                 >
                   ✏️ Edit
                 </button>
@@ -371,7 +371,7 @@ function ResultsManager() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {matches.map(match => {
-            const borderColor = match.region ? REGION_COLORS[match.region] : 'border-l-gold-500'
+            const borderColor = match.region ? REGION_COLORS[match.region] : 'border-l-navy-500'
             
             return (
               <div key={match.id} className={`card p-4 border-l-4 ${borderColor}`}>

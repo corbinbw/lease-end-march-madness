@@ -30,7 +30,7 @@ export function Navbar({ user }: NavbarProps) {
                 height={32}
                 className="h-8 w-auto"
               />
-              <span className="bg-gold-400 text-navy-900 text-xs font-bold px-2 py-1 rounded">
+              <span className="bg-navy-400 text-white text-xs font-bold px-2 py-1 rounded">
                 MADNESS
               </span>
             </Link>
@@ -58,7 +58,7 @@ export function Navbar({ user }: NavbarProps) {
               {user.role === 'ADMIN' && (
                 <Link 
                   href="/admin" 
-                  className="text-gold-400 hover:text-gold-300 hover:bg-navy-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                  className="text-navy-300 hover:text-white hover:bg-navy-700 px-4 py-2 rounded-lg font-medium transition-colors"
                 >
                   ⚙️ Admin
                 </Link>

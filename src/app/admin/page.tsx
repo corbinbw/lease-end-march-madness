@@ -16,7 +16,7 @@ export default async function AdminPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-2">
             <span className="text-3xl font-light text-navy-900 dark:text-white tracking-tight">LEASE</span>
-            <span className="text-3xl font-bold text-gold-500 tracking-tight">END</span>
+            <span className="text-3xl font-bold text-navy-500 tracking-tight">END</span>
           </div>
           <div className="inline-flex items-center bg-navy-800 dark:bg-navy-700 text-white px-4 py-1.5 rounded-full font-bold text-sm mb-2">
             ⚙️ ADMIN DASHBOARD

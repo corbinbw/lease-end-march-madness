@@ -42,7 +42,7 @@ export default async function HomePage() {
               height={55}
               className="h-14 w-auto"
             />
-            <span className="bg-gold-400 text-navy-900 px-4 py-2 rounded-lg font-bold text-xl">
+            <span className="bg-navy-400 text-white px-4 py-2 rounded-lg font-bold text-xl">
               🏀 MADNESS
             </span>
           </div>
@@ -55,7 +55,7 @@ export default async function HomePage() {
             <div className={`inline-flex items-center px-5 py-2 rounded-xl font-semibold text-sm ${
               locked 
                 ? 'bg-rose-500/20 text-rose-200 border border-rose-400/30' 
-                : 'bg-gold-400/20 text-gold-200 border border-gold-400/30'
+                : 'bg-navy-400/20 text-navy-200 border border-navy-400/30'
             }`}>
               {locked ? (
                 <span>🔒 Brackets Locked</span>

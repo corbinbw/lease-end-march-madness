@@ -18,9 +18,9 @@ export default async function LeaderboardPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-2">
             <span className="text-3xl font-light text-navy-900 dark:text-white tracking-tight">LEASE</span>
-            <span className="text-3xl font-bold text-gold-500 tracking-tight">END</span>
+            <span className="text-3xl font-bold text-navy-500 tracking-tight">END</span>
           </div>
-          <div className="inline-flex items-center bg-gold-400 text-navy-900 px-4 py-1.5 rounded-full font-bold text-sm mb-2">
+          <div className="inline-flex items-center bg-navy-400 text-navy-900 px-4 py-1.5 rounded-full font-bold text-sm mb-2">
             🏆 LEADERBOARD
           </div>
           <p className="text-navy-600 dark:text-navy-400">
