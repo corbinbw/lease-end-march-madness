@@ -25,31 +25,43 @@ export async function POST(request: Request) {
       }
     }
 
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10)
+
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email }
     })
 
+    let user
+
     if (existingUser) {
-      return NextResponse.json(
-        { error: 'An account with this email already exists' },
-        { status: 400 }
-      )
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10)
-
-    // Create user
-    const isAdmin = email === process.env.ADMIN_EMAIL
-    const user = await prisma.user.create({
-      data: {
-        email,
-        name,
-        password: hashedPassword,
-        role: isAdmin ? 'ADMIN' : 'USER',
+      if (existingUser.password) {
+        return NextResponse.json(
+          { error: 'An account with this email already exists. Please sign in.' },
+          { status: 400 }
+        )
       }
-    })
+      // User exists from seed but has no password — let them claim it
+      user = await prisma.user.update({
+        where: { email },
+        data: {
+          name,
+          password: hashedPassword,
+        }
+      })
+    } else {
+      // Create new user
+      const isAdmin = email === process.env.ADMIN_EMAIL
+      user = await prisma.user.create({
+        data: {
+          email,
+          name,
+          password: hashedPassword,
+          role: isAdmin ? 'ADMIN' : 'USER',
+        }
+      })
+    }
 
     return NextResponse.json({
       message: 'Account created successfully',
