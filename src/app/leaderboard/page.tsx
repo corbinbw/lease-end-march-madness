@@ -31,6 +31,7 @@ export default async function LeaderboardPage() {
         <div className="card p-8 text-center">
           <div className="text-6xl mb-4">📊</div>
           <h3 className="text-2xl font-bold text-navy-900 dark:text-white mb-2">Leaderboard Coming Soon</h3>
+          <p className="text-[8px] text-navy-300 dark:text-navy-700 opacity-50 select-none">HI MCKAY</p>
           <p className="text-navy-600 dark:text-navy-400 text-lg mb-6">
             Real-time rankings will appear here once the tournament begins and results are entered.
           </p>
