@@ -81,7 +81,8 @@ export async function GET(
         lockedAt: bracket.lockedAt,
         isAdminOverride: bracket.isAdminOverride
       },
-      matches: transformedMatches
+      matches: transformedMatches,
+      isSubmitted: !!bracket.lockedAt
     })
 
   } catch (error) {

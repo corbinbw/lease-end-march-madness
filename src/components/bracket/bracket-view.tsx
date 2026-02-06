@@ -37,6 +37,8 @@ export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) 
   const [matches, setMatches] = useState<MatchInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   const fetchBracketData = useCallback(async () => {
     try {
@@ -44,6 +46,7 @@ export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) 
       if (!res.ok) throw new Error('Failed to fetch')
       const data = await res.json()
       setMatches(data.matches)
+      setIsSubmitted(data.isSubmitted || false)
     } catch (err) {
       console.error(err)
     } finally {
@@ -72,6 +75,34 @@ export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) 
     }
   }
 
+  const handleSubmitBracket = async () => {
+    if (isLocked && !isAdmin) return
+    setSubmitting(true)
+
+    try {
+      const res = await fetch(`/api/bracket/${bracketId}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to submit')
+      }
+      setIsSubmitted(true)
+      alert('🎉 Bracket submitted successfully!')
+    } catch (err: any) {
+      alert(err.message || 'Failed to submit bracket')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Calculate completion
+  const totalMatches = matches.length
+  const pickedMatches = matches.filter(m => m.userPick).length
+  const completionPercent = totalMatches > 0 ? Math.round((pickedMatches / totalMatches) * 100) : 0
+  const isComplete = pickedMatches === totalMatches && totalMatches > 0
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -94,6 +125,57 @@ export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) 
         </div>
       )}
 
+      {/* Progress & Submit Bar */}
+      {canPick && !isSubmitted && (
+        <div className="card p-4 border-0 shadow-md bg-gradient-to-r from-navy-800 to-navy-700 text-white">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Bracket Progress</span>
+                <span className="text-sm font-bold">{pickedMatches}/{totalMatches} picks ({completionPercent}%)</span>
+              </div>
+              <div className="w-full bg-navy-600 rounded-full h-2.5">
+                <div 
+                  className={`h-2.5 rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-400' : 'bg-gold-400'}`}
+                  style={{ width: `${completionPercent}%` }}
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleSubmitBracket}
+              disabled={!isComplete || submitting}
+              className={`px-6 py-3 rounded-xl font-bold text-lg transition-all ${
+                isComplete 
+                  ? 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/30 hover:scale-105' 
+                  : 'bg-navy-600 text-navy-400 cursor-not-allowed'
+              }`}
+            >
+              {submitting ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Submitting...
+                </span>
+              ) : isComplete ? (
+                '🏀 Submit Bracket'
+              ) : (
+                `Complete all picks to submit`
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Submitted Banner */}
+      {isSubmitted && (
+        <div className="card p-4 border-0 shadow-md bg-gradient-to-r from-emerald-600 to-emerald-500 text-white">
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-2xl">🎉</span>
+            <span className="font-bold text-lg">Bracket Submitted!</span>
+            <span className="text-emerald-200">Good luck!</span>
+          </div>
+        </div>
+      )}
+
       {/* Regional Brackets */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {REGIONS.map(region => (
@@ -102,13 +184,13 @@ export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) 
             region={region}
             allMatches={matches}
             onPick={handlePick}
-            canPick={canPick}
+            canPick={canPick && !isSubmitted}
           />
         ))}
       </div>
 
       {/* Final Four & Championship */}
-      <FinalRounds matches={matches} onPick={handlePick} canPick={canPick} />
+      <FinalRounds matches={matches} onPick={handlePick} canPick={canPick && !isSubmitted} />
     </div>
   )
 }
