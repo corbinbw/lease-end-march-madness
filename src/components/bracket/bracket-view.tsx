@@ -41,7 +41,7 @@ export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) 
   const [saving, setSaving] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [activeRegion, setActiveRegion] = useState(REGIONS[0])
+  const [activeRegion, setActiveRegion] = useState<string>(REGIONS[0])
   const [activeRound, setActiveRound] = useState<string>('R64')
 
   const fetchBracketData = useCallback(async () => {
