@@ -10,6 +10,8 @@ interface BracketViewProps {
   isAdmin: boolean
 }
 
+const ROUND_ORDER = ['R64', 'R32', 'S16', 'E8', 'F4', 'CHAMP'] as const
+
 const ROUND_LABELS: Record<string, string> = {
   R64: 'Round of 64',
   R32: 'Round of 32',
@@ -22,15 +24,15 @@ const ROUND_LABELS: Record<string, string> = {
 const REGION_LABELS: Record<string, string> = {
   IADVISORS: 'iAdvisors',
   XADVISORS: 'xAdvisors',
-  FINANCIAL_SPECIALISTS: 'Financial Specialists',
+  FINANCIAL_SPECIALISTS: 'Fin. Specialists',
   WADVISORS: 'wAdvisors',
 }
 
-const REGION_COLORS: Record<string, { bg: string; border: string; light: string }> = {
-  IADVISORS: { bg: 'bg-blue-600', border: 'border-l-blue-500', light: 'bg-blue-500/10' },
-  XADVISORS: { bg: 'bg-emerald-600', border: 'border-l-emerald-500', light: 'bg-emerald-500/10' },
-  FINANCIAL_SPECIALISTS: { bg: 'bg-violet-600', border: 'border-l-violet-500', light: 'bg-violet-500/10' },
-  WADVISORS: { bg: 'bg-rose-600', border: 'border-l-rose-500', light: 'bg-rose-500/10' },
+const REGION_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  IADVISORS: { bg: 'bg-blue-600', border: 'border-blue-500', text: 'text-blue-400' },
+  XADVISORS: { bg: 'bg-emerald-600', border: 'border-emerald-500', text: 'text-emerald-400' },
+  FINANCIAL_SPECIALISTS: { bg: 'bg-violet-600', border: 'border-violet-500', text: 'text-violet-400' },
+  WADVISORS: { bg: 'bg-rose-600', border: 'border-rose-500', text: 'text-rose-400' },
 }
 
 export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) {
@@ -39,6 +41,8 @@ export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) 
   const [saving, setSaving] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [activeRegion, setActiveRegion] = useState(REGIONS[0])
+  const [activeRound, setActiveRound] = useState<string>('R64')
 
   const fetchBracketData = useCallback(async () => {
     try {
@@ -57,7 +61,7 @@ export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) 
   useEffect(() => { fetchBracketData() }, [fetchBracketData])
 
   const handlePick = async (matchId: string, entrantId: string) => {
-    if (isLocked && !isAdmin) return
+    if ((isLocked && !isAdmin) || isSubmitted) return
     setSaving(true)
 
     try {
@@ -76,7 +80,7 @@ export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) 
   }
 
   const handleSubmitBracket = async () => {
-    if (isLocked && !isAdmin) return
+    if ((isLocked && !isAdmin) || isSubmitted) return
     setSubmitting(true)
 
     try {
@@ -103,6 +107,13 @@ export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) 
   const completionPercent = totalMatches > 0 ? Math.round((pickedMatches / totalMatches) * 100) : 0
   const isComplete = pickedMatches === totalMatches && totalMatches > 0
 
+  // Calculate region completion
+  const getRegionCompletion = (region: string) => {
+    const regionMatches = matches.filter(m => m.region === region)
+    const picked = regionMatches.filter(m => m.userPick).length
+    return { picked, total: regionMatches.length }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -114,10 +125,18 @@ export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) 
     )
   }
 
-  const canPick = !isLocked || isAdmin
+  const canPick = (!isLocked || isAdmin) && !isSubmitted
+
+  // Get matches for mobile view
+  const getMobileMatches = () => {
+    if (activeRound === 'F4' || activeRound === 'CHAMP') {
+      return matches.filter(m => m.round === activeRound)
+    }
+    return matches.filter(m => m.round === activeRound && m.region === activeRegion)
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {saving && (
         <div className="fixed top-4 right-4 bg-navy-800 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2">
           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -126,71 +145,206 @@ export function BracketView({ bracketId, isLocked, isAdmin }: BracketViewProps) 
       )}
 
       {/* Progress & Submit Bar */}
-      {canPick && !isSubmitted && (
-        <div className="card p-4 border-0 shadow-md bg-gradient-to-r from-navy-800 to-navy-700 text-white">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex-1">
+      {!isSubmitted && (
+        <div className="card p-3 sm:p-4 border-0 shadow-md bg-gradient-to-r from-navy-800 to-navy-700 text-white">
+          <div className="flex flex-col gap-3">
+            <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Bracket Progress</span>
-                <span className="text-sm font-bold">{pickedMatches}/{totalMatches} picks ({completionPercent}%)</span>
+                <span className="text-xs sm:text-sm font-medium">Bracket Progress</span>
+                <span className="text-xs sm:text-sm font-bold">{pickedMatches}/{totalMatches} ({completionPercent}%)</span>
               </div>
-              <div className="w-full bg-navy-600 rounded-full h-2.5">
+              <div className="w-full bg-navy-600 rounded-full h-2">
                 <div 
-                  className={`h-2.5 rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-400' : 'bg-gold-400'}`}
+                  className={`h-2 rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-400' : 'bg-amber-400'}`}
                   style={{ width: `${completionPercent}%` }}
                 />
               </div>
             </div>
-            <button
-              onClick={handleSubmitBracket}
-              disabled={!isComplete || submitting}
-              className={`px-6 py-3 rounded-xl font-bold text-lg transition-all ${
-                isComplete 
-                  ? 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/30 hover:scale-105' 
-                  : 'bg-navy-600 text-navy-400 cursor-not-allowed'
-              }`}
-            >
-              {submitting ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Submitting...
-                </span>
-              ) : isComplete ? (
-                '🏀 Submit Bracket'
-              ) : (
-                `Complete all picks to submit`
-              )}
-            </button>
+            {canPick && (
+              <button
+                onClick={handleSubmitBracket}
+                disabled={!isComplete || submitting}
+                className={`w-full sm:w-auto px-4 py-2.5 rounded-xl font-bold text-sm sm:text-base transition-all ${
+                  isComplete 
+                    ? 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/30' 
+                    : 'bg-navy-600 text-navy-400 cursor-not-allowed'
+                }`}
+              >
+                {submitting ? 'Submitting...' : isComplete ? '🏀 Submit Bracket' : 'Complete all picks to submit'}
+              </button>
+            )}
           </div>
         </div>
       )}
 
       {/* Submitted Banner */}
       {isSubmitted && (
-        <div className="card p-4 border-0 shadow-md bg-gradient-to-r from-emerald-600 to-emerald-500 text-white">
-          <div className="flex items-center justify-center gap-3">
-            <span className="text-2xl">🎉</span>
-            <span className="font-bold text-lg">Bracket Submitted!</span>
-            <span className="text-emerald-200">Good luck!</span>
+        <div className="card p-3 sm:p-4 border-0 shadow-md bg-gradient-to-r from-emerald-600 to-emerald-500 text-white">
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-xl">🎉</span>
+            <span className="font-bold">Bracket Submitted!</span>
+            <span className="text-emerald-200 text-sm">Good luck!</span>
           </div>
         </div>
       )}
 
-      {/* Regional Brackets */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {REGIONS.map(region => (
-          <RegionBracket
-            key={region}
-            region={region}
-            allMatches={matches}
-            onPick={handlePick}
-            canPick={canPick && !isSubmitted}
-          />
-        ))}
+      {/* MOBILE VIEW */}
+      <div className="lg:hidden space-y-3">
+        {/* Round Selector */}
+        <div className="flex overflow-x-auto gap-1 pb-2 -mx-2 px-2">
+          {ROUND_ORDER.map(round => {
+            const roundMatches = matches.filter(m => m.round === round)
+            const picked = roundMatches.filter(m => m.userPick).length
+            const complete = picked === roundMatches.length
+            return (
+              <button
+                key={round}
+                onClick={() => setActiveRound(round)}
+                className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                  activeRound === round
+                    ? 'bg-navy-700 text-white'
+                    : complete
+                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-navy-100 dark:bg-navy-800 text-navy-600 dark:text-navy-300'
+                }`}
+              >
+                {round === 'R64' ? 'R64' : round === 'R32' ? 'R32' : round === 'S16' ? 'S16' : round === 'E8' ? 'E8' : round === 'F4' ? 'F4' : '🏆'}
+                {complete && <span className="ml-1">✓</span>}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Region Selector (only for regional rounds) */}
+        {!['F4', 'CHAMP'].includes(activeRound) && (
+          <div className="grid grid-cols-4 gap-1">
+            {REGIONS.map(region => {
+              const { picked, total } = getRegionCompletion(region)
+              const colors = REGION_COLORS[region]
+              const isActive = activeRegion === region
+              return (
+                <button
+                  key={region}
+                  onClick={() => setActiveRegion(region)}
+                  className={`px-2 py-2 rounded-lg text-[10px] font-bold transition-all border-2 ${
+                    isActive 
+                      ? `${colors.bg} text-white border-transparent`
+                      : `bg-white dark:bg-navy-800 ${colors.text} ${colors.border}`
+                  }`}
+                >
+                  <div className="truncate">{REGION_LABELS[region].split(' ')[0]}</div>
+                  <div className="text-[9px] opacity-70">{picked}/{total}</div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Mobile Match List */}
+        <div className="space-y-2">
+          {getMobileMatches().map(match => (
+            <MobileMatchCard
+              key={match.id}
+              match={match}
+              allMatches={matches}
+              onPick={handlePick}
+              canPick={canPick}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* Final Four & Championship */}
-      <FinalRounds matches={matches} onPick={handlePick} canPick={canPick && !isSubmitted} />
+      {/* DESKTOP VIEW */}
+      <div className="hidden lg:block space-y-4">
+        {/* Regional Brackets */}
+        <div className="grid grid-cols-2 gap-4">
+          {REGIONS.map(region => (
+            <RegionBracket
+              key={region}
+              region={region}
+              allMatches={matches}
+              onPick={handlePick}
+              canPick={canPick}
+            />
+          ))}
+        </div>
+
+        {/* Final Four & Championship */}
+        <FinalRounds matches={matches} onPick={handlePick} canPick={canPick} />
+      </div>
+    </div>
+  )
+}
+
+function MobileMatchCard({
+  match,
+  allMatches,
+  onPick,
+  canPick,
+}: {
+  match: MatchInfo
+  allMatches: MatchInfo[]
+  onPick: (matchId: string, entrantId: string) => void
+  canPick: boolean
+}) {
+  const { left, right } = computeVirtualEntrants(allMatches, match)
+  const pickId = match.userPick?.pickedWinnerEntrantId
+  const bothReady = !!left && !!right
+
+  const renderEntrant = (entrant: EntrantInfo | null, position: 'top' | 'bottom') => {
+    if (!entrant) {
+      return (
+        <div className="flex items-center justify-between px-3 py-3 bg-navy-100 dark:bg-navy-800 rounded-lg border border-dashed border-navy-300 dark:border-navy-600">
+          <span className="text-navy-400 text-sm italic">Waiting for winner...</span>
+        </div>
+      )
+    }
+
+    const isPicked = pickId === entrant.id
+    const isActualWinner = match.winnerEntrant?.id === entrant.id
+    const isActualLoser = match.winnerEntrant && match.winnerEntrant.id !== entrant.id
+    const clickable = canPick && bothReady && !match.winnerEntrant
+
+    return (
+      <button
+        onClick={() => clickable && onPick(match.id, entrant.id)}
+        disabled={!clickable}
+        className={`w-full flex items-center justify-between px-3 py-3 rounded-lg border-2 transition-all text-left ${
+          isActualWinner
+            ? 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-400 text-emerald-800 dark:text-emerald-200'
+            : isActualLoser
+            ? 'bg-navy-100 dark:bg-navy-800 border-navy-200 dark:border-navy-700 text-navy-400 opacity-50'
+            : isPicked
+            ? 'bg-navy-200 dark:bg-navy-700 border-navy-500 text-navy-900 dark:text-white'
+            : clickable
+            ? 'bg-white dark:bg-navy-800 border-navy-200 dark:border-navy-600 hover:border-navy-400 hover:bg-navy-50 dark:hover:bg-navy-700'
+            : 'bg-white dark:bg-navy-800 border-navy-200 dark:border-navy-600'
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <span className="bg-navy-700 dark:bg-navy-600 text-white w-6 h-6 rounded flex items-center justify-center text-xs font-bold">
+            {entrant.seed}
+          </span>
+          <span className={`font-medium ${isActualLoser ? 'line-through' : ''}`}>
+            {entrant.displayName}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          {isPicked && !isActualWinner && <span className="text-navy-500">✓</span>}
+          {isActualWinner && <span>🏆</span>}
+        </div>
+      </button>
+    )
+  }
+
+  return (
+    <div className="card p-3 space-y-2">
+      <div className="text-xs text-navy-500 dark:text-navy-400 font-medium text-center">
+        Match {match.matchNumber}
+      </div>
+      {renderEntrant(left, 'top')}
+      <div className="text-center text-xs text-navy-400 font-bold">VS</div>
+      {renderEntrant(right, 'bottom')}
     </div>
   )
 }
@@ -211,14 +365,12 @@ function RegionBracket({
 
   return (
     <div className="card overflow-hidden border-0 shadow-md">
-      {/* Region Header */}
-      <div className={`${colors.bg} text-white px-4 py-3`}>
-        <h3 className="font-bold text-center">{REGION_LABELS[region]}</h3>
+      <div className={`${colors.bg} text-white px-4 py-2`}>
+        <h3 className="font-bold text-center text-sm">{REGION_LABELS[region]}</h3>
       </div>
       
-      {/* Bracket Grid */}
-      <div className="p-3 overflow-x-auto bg-white dark:bg-navy-900">
-        <div className="flex gap-2 min-w-[680px]">
+      <div className="p-2 overflow-x-auto bg-white dark:bg-navy-900">
+        <div className="flex gap-1 min-w-[600px]">
           {regionalRounds.map((round, roundIdx) => {
             const roundMatches = allMatches
               .filter(m => m.round === round && m.region === region)
@@ -226,19 +378,18 @@ function RegionBracket({
 
             return (
               <div key={round} className="flex-1">
-                <div className="text-[10px] font-bold text-navy-400 dark:text-navy-500 text-center mb-2 uppercase tracking-wider">
-                  {round === 'R64' ? 'R64' : round === 'R32' ? 'R32' : round === 'S16' ? 'S16' : 'E8'}
+                <div className="text-[9px] font-bold text-navy-400 dark:text-navy-500 text-center mb-1 uppercase">
+                  {round}
                 </div>
-                <div className={`space-y-1 flex flex-col ${roundIdx === 0 ? '' : 'justify-around h-full'}`}>
+                <div className={`space-y-0.5 flex flex-col ${roundIdx === 0 ? '' : 'justify-around h-full'}`}>
                   {roundMatches.map(match => (
-                    <MatchCard
+                    <CompactMatchCard
                       key={match.id}
                       match={match}
                       allMatches={allMatches}
                       onPick={onPick}
                       canPick={canPick}
-                      regionColor={colors.border}
-                      compact={roundIdx === 0}
+                      regionBorder={colors.border}
                     />
                   ))}
                 </div>
@@ -264,44 +415,42 @@ function FinalRounds({
   const champMatch = matches.find(m => m.round === 'CHAMP')
 
   return (
-    <div className="card p-6 border-0 shadow-md bg-gradient-to-br from-white to-navy-50 dark:from-navy-900 dark:to-navy-800">
-      <div className="text-center mb-6">
-        <span className="inline-flex items-center bg-navy-800 dark:bg-navy-700 text-white px-6 py-2 rounded-xl font-bold text-lg">
+    <div className="card p-4 border-0 shadow-md bg-gradient-to-br from-white to-navy-50 dark:from-navy-900 dark:to-navy-800">
+      <div className="text-center mb-4">
+        <span className="inline-flex items-center bg-navy-800 dark:bg-navy-700 text-white px-4 py-1.5 rounded-xl font-bold">
           🏆 Final Four & Championship
         </span>
       </div>
       
-      <div className="flex flex-col items-center gap-6">
-        {/* Final Four */}
-        <div className="flex flex-wrap justify-center gap-6">
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-wrap justify-center gap-4">
           {f4Matches.map((match, i) => (
-            <div key={match.id} className="w-64">
-              <div className="text-xs font-semibold text-navy-500 dark:text-navy-400 text-center mb-2">
-                {i === 0 ? 'iAdvisors vs xAdvisors' : 'Fin. Specialists vs wAdvisors'}
+            <div key={match.id} className="w-56">
+              <div className="text-xs font-medium text-navy-500 dark:text-navy-400 text-center mb-1">
+                Semifinal {i + 1}
               </div>
-              <MatchCard
+              <CompactMatchCard
                 match={match}
                 allMatches={matches}
                 onPick={onPick}
                 canPick={canPick}
-                regionColor="border-l-navy-400"
+                regionBorder="border-navy-400"
               />
             </div>
           ))}
         </div>
 
-        {/* Championship */}
         {champMatch && (
-          <div className="w-72">
-            <div className="text-center mb-2">
+          <div className="w-64">
+            <div className="text-center mb-1">
               <span className="text-sm font-bold text-navy-600 dark:text-navy-300">👑 Championship</span>
             </div>
-            <MatchCard
+            <CompactMatchCard
               match={champMatch}
               allMatches={matches}
               onPick={onPick}
               canPick={canPick}
-              regionColor="border-l-navy-400"
+              regionBorder="border-amber-500"
               isChamp
             />
           </div>
@@ -311,22 +460,20 @@ function FinalRounds({
   )
 }
 
-function MatchCard({
+function CompactMatchCard({
   match,
   allMatches,
   onPick,
   canPick,
-  regionColor,
+  regionBorder,
   isChamp,
-  compact,
 }: {
   match: MatchInfo
   allMatches: MatchInfo[]
   onPick: (matchId: string, entrantId: string) => void
   canPick: boolean
-  regionColor: string
+  regionBorder: string
   isChamp?: boolean
-  compact?: boolean
 }) {
   const { left, right } = computeVirtualEntrants(allMatches, match)
   const pickId = match.userPick?.pickedWinnerEntrantId
@@ -335,7 +482,7 @@ function MatchCard({
   const renderEntrant = (entrant: EntrantInfo | null) => {
     if (!entrant) {
       return (
-        <div className="flex items-center px-2 py-1.5 border border-dashed border-navy-200 dark:border-navy-600 rounded text-navy-400 dark:text-navy-500 text-xs">
+        <div className="flex items-center px-1.5 py-1 border border-dashed border-navy-200 dark:border-navy-600 rounded text-navy-400 text-[10px]">
           <span className="italic">TBD</span>
         </div>
       )
@@ -346,39 +493,38 @@ function MatchCard({
     const isActualLoser = match.winnerEntrant && match.winnerEntrant.id !== entrant.id
     const clickable = canPick && bothReady && !match.winnerEntrant
 
-    let classes = 'flex items-center justify-between px-2 py-1.5 border rounded text-xs transition-all '
-    
-    if (isActualWinner) {
-      classes += 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-400 text-emerald-800 dark:text-emerald-200 font-bold '
-    } else if (isActualLoser) {
-      classes += 'bg-navy-100 dark:bg-navy-800 border-navy-200 dark:border-navy-700 text-navy-400 line-through opacity-50 '
-    } else if (isPicked) {
-      classes += 'bg-navy-100 dark:bg-navy-700 border-navy-400 text-navy-800 dark:text-white font-semibold '
-    } else {
-      classes += 'bg-white dark:bg-navy-800 border-navy-200 dark:border-navy-600 text-navy-700 dark:text-navy-200 '
-      if (clickable) classes += 'hover:border-navy-400 hover:bg-navy-50 dark:hover:bg-navy-700 cursor-pointer '
-    }
-
     return (
-      <div className={classes} onClick={() => clickable && onPick(match.id, entrant.id)}>
-        <div className="flex items-center gap-1.5 overflow-hidden">
-          <span className="bg-navy-700 dark:bg-navy-600 text-white w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0">
+      <div 
+        onClick={() => clickable && onPick(match.id, entrant.id)}
+        className={`flex items-center justify-between px-1.5 py-1 border rounded text-[10px] transition-all ${
+          isActualWinner
+            ? 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-400 text-emerald-800 dark:text-emerald-200 font-bold'
+            : isActualLoser
+            ? 'bg-navy-100 dark:bg-navy-800 border-navy-200 dark:border-navy-700 text-navy-400 line-through opacity-50'
+            : isPicked
+            ? 'bg-navy-100 dark:bg-navy-700 border-navy-400 text-navy-800 dark:text-white font-semibold'
+            : clickable
+            ? 'bg-white dark:bg-navy-800 border-navy-200 dark:border-navy-600 hover:border-navy-400 cursor-pointer'
+            : 'bg-white dark:bg-navy-800 border-navy-200 dark:border-navy-600'
+        }`}
+      >
+        <div className="flex items-center gap-1 overflow-hidden">
+          <span className="bg-navy-700 dark:bg-navy-600 text-white w-4 h-4 rounded flex items-center justify-center text-[8px] font-bold shrink-0">
             {entrant.seed}
           </span>
           <span className="truncate">{entrant.displayName}</span>
         </div>
-        <div className="flex items-center gap-0.5 shrink-0 ml-1">
-          {isPicked && <span className="text-navy-500 dark:text-navy-300">✓</span>}
-          {isActualWinner && <span className="text-xs">🏆</span>}
+        <div className="flex items-center gap-0.5 shrink-0">
+          {isPicked && !isActualWinner && <span className="text-navy-500">✓</span>}
+          {isActualWinner && <span className="text-[8px]">🏆</span>}
         </div>
       </div>
     )
   }
 
   return (
-    <div className={`rounded-lg border-l-4 ${regionColor} ${isChamp ? 'bg-navy-100 dark:bg-navy-800 border border-navy-200 dark:border-navy-600' : 'bg-navy-50 dark:bg-navy-800/50'} p-1.5 space-y-1`}>
+    <div className={`rounded border-l-2 ${regionBorder} ${isChamp ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800' : 'bg-navy-50 dark:bg-navy-800/50'} p-1 space-y-0.5`}>
       {renderEntrant(left)}
-      {!compact && <div className="text-center text-[9px] text-navy-400 dark:text-navy-500 font-semibold">VS</div>}
       {renderEntrant(right)}
     </div>
   )
