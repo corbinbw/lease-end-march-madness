@@ -3,9 +3,32 @@ import { prisma } from '@/lib/prisma'
 import { calculateBracketScore } from '@/lib/scoring'
 import { formatLockTime } from '@/lib/bracket-utils'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
-    // Get all brackets and calculate scores
+    // Get all entrants
+    const entrants = await prisma.entrant.findMany({
+      orderBy: [
+        { region: 'asc' },
+        { seed: 'asc' }
+      ]
+    })
+
+    // Get all matches with results
+    const matches = await prisma.match.findMany({
+      include: {
+        leftEntrant: true,
+        rightEntrant: true,
+        winnerEntrant: true
+      },
+      orderBy: [
+        { round: 'asc' },
+        { matchNumber: 'asc' }
+      ]
+    })
+
+    // Get all brackets and calculate scores for leaderboard
     const brackets = await prisma.bracket.findMany({
       include: {
         user: true,
@@ -35,7 +58,7 @@ export async function GET() {
           totalPoints: score.totalPoints,
           possibleRemainingPoints: score.possibleRemainingPoints,
           isPerfect: score.isPerfect,
-          rank: 0 // Will be calculated after sorting
+          rank: 0
         })
 
         if (score.isPerfect) {
@@ -89,6 +112,8 @@ export async function GET() {
       : 'No lock time set'
 
     return NextResponse.json({
+      entrants,
+      matches,
       leaderboard: leaderboardData,
       recentResults,
       perfectBrackets,
@@ -102,6 +127,8 @@ export async function GET() {
     return NextResponse.json(
       { 
         error: 'Internal server error',
+        entrants: [],
+        matches: [],
         leaderboard: [],
         recentResults: [],
         perfectBrackets: 0,

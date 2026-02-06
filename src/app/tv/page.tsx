@@ -1,51 +1,47 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
-import { getCurrentTournamentRound, getRoundDisplayName } from '@/lib/bracket-utils'
 
-interface LeaderboardEntry {
+interface Entrant {
   id: string
-  name: string
-  totalPoints: number
-  possibleRemainingPoints: number
-  isPerfect: boolean
-  rank: number
+  displayName: string
+  region: string
+  seed: number
 }
 
-interface RecentResult {
+interface Match {
   id: string
-  matchDescription: string
-  winner: string
-  timestamp: Date
+  round: string
+  region: string | null
+  matchNumber: number
+  leftEntrant: Entrant | null
+  rightEntrant: Entrant | null
+  winnerEntrant: Entrant | null
 }
+
+const REGIONS = {
+  left: ['IADVISORS', 'XADVISORS'],
+  right: ['FINANCIAL_SPECIALISTS', 'WADVISORS']
+}
+
+const REGION_NAMES: Record<string, string> = {
+  IADVISORS: 'I-Advisors',
+  XADVISORS: 'X-Advisors',
+  FINANCIAL_SPECIALISTS: 'Financial Specialists',
+  WADVISORS: 'W-Advisors'
+}
+
+const ROUND_ORDER = ['R64', 'R32', 'S16', 'E8', 'F4', 'CHAMP']
 
 export default function TVDisplayPage() {
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
-  const [recentResults, setRecentResults] = useState<RecentResult[]>([])
-  const [perfectBrackets, setPerfectBrackets] = useState(0)
-  const [currentView, setCurrentView] = useState('leaderboard')
-  const [currentRound, setCurrentRound] = useState('')
-  const [lockInfo, setLockInfo] = useState<string>('')
+  const [entrants, setEntrants] = useState<Entrant[]>([])
+  const [matches, setMatches] = useState<Match[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchTVData()
     const interval = setInterval(fetchTVData, 30000)
-    const viewRotation = setInterval(() => {
-      setCurrentView(prev => {
-        switch (prev) {
-          case 'leaderboard': return 'results'
-          case 'results': return 'leaderboard'
-          default: return 'leaderboard'
-        }
-      })
-    }, 20000)
-
-    return () => {
-      clearInterval(interval)
-      clearInterval(viewRotation)
-    }
+    return () => clearInterval(interval)
   }, [])
 
   const fetchTVData = async () => {
@@ -53,10 +49,8 @@ export default function TVDisplayPage() {
       const response = await fetch('/api/tv-data')
       if (response.ok) {
         const data = await response.json()
-        setLeaderboard(data.leaderboard || [])
-        setRecentResults(data.recentResults || [])
-        setPerfectBrackets(data.perfectBrackets || 0)
-        setLockInfo(data.lockInfo || '')
+        setEntrants(data.entrants || [])
+        setMatches(data.matches || [])
       }
     } catch (error) {
       console.error('Error fetching TV data:', error)
@@ -65,150 +59,302 @@ export default function TVDisplayPage() {
     }
   }
 
-  useEffect(() => {
-    setCurrentRound(getRoundDisplayName(getCurrentTournamentRound()))
-  }, [])
+  const getEntrantsByRegion = (region: string) => {
+    return entrants
+      .filter(e => e.region === region)
+      .sort((a, b) => a.seed - b.seed)
+  }
+
+  const getMatchesByRoundAndRegion = (round: string, region: string | null) => {
+    return matches
+      .filter(m => m.round === round && m.region === region)
+      .sort((a, b) => a.matchNumber - b.matchNumber)
+  }
+
+  const getMatchByRoundNumber = (round: string, matchNumber: number, region: string | null = null) => {
+    return matches.find(m => m.round === round && m.matchNumber === matchNumber && m.region === region)
+  }
 
   if (loading) {
     return (
-      <div className="h-screen bg-navy-900 flex items-center justify-center">
+      <div className="h-screen bg-[#0a1628] flex items-center justify-center">
         <div className="text-center">
-          <Image 
-            src="/leaseend-logo.webp" 
-            alt="Lease End" 
-            width={320} 
-            height={74}
-            className="mx-auto mb-6"
-          />
-          <div className="w-8 h-8 border-4 border-navy-600 border-t-navy-400 rounded-full animate-spin mx-auto" />
+          <div className="text-4xl font-bold text-white mb-4">LEASE END MM26</div>
+          <div className="w-8 h-8 border-4 border-[#3d8eff] border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="h-screen bg-navy-900 text-white flex flex-col">
+    <div 
+      className="min-h-screen text-white relative overflow-auto"
+      style={{
+        background: 'linear-gradient(180deg, #0a1628 0%, #1a3a5c 50%, #0a1628 100%)',
+      }}
+    >
+      {/* Arena lighting effect */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 30%, rgba(61, 142, 255, 0.15) 0%, transparent 50%)',
+        }}
+      />
+      
+      {/* Court lines overlay */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-10"
+        style={{
+          backgroundImage: `
+            linear-gradient(90deg, transparent 49.5%, #3d8eff 49.5%, #3d8eff 50.5%, transparent 50.5%),
+            radial-gradient(circle at 50% 60%, transparent 15%, #3d8eff 15%, #3d8eff 15.5%, transparent 15.5%)
+          `,
+        }}
+      />
+
       {/* Header */}
-      <div className="bg-navy-800 border-b border-navy-700 px-8 py-5">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-6">
-            <Image 
-              src="/leaseend-logo.webp" 
-              alt="Lease End" 
-              width={200} 
-              height={46}
-              className="h-12 w-auto"
-            />
-            <div className="w-px h-10 bg-navy-600" />
-            <div className="bg-navy-400 text-white px-5 py-2 rounded-xl font-bold text-2xl">
-              🏀 MADNESS 2026
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-8">
-            <div className="text-right">
-              <div className="text-sm text-navy-400">Current Round</div>
-              <div className="text-xl font-bold text-navy-300">{currentRound}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-navy-400">Perfect Brackets</div>
-              <div className="text-3xl font-bold text-navy-400">{perfectBrackets}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-navy-400">Grand Prize</div>
-              <div className="text-3xl font-bold text-emerald-400">$1M</div>
-            </div>
-          </div>
+      <div className="relative z-10 text-center py-6">
+        <h1 className="text-5xl md:text-7xl font-black tracking-wider text-white" style={{ textShadow: '0 0 30px rgba(61, 142, 255, 0.5)' }}>
+          LEASE END MM26
+        </h1>
+      </div>
+
+      {/* Round Labels - Top */}
+      <div className="relative z-10 flex justify-between items-center px-4 text-xs md:text-sm font-bold text-[#7eb8ff] mb-2">
+        <div className="flex-1 flex justify-around">
+          <span>Round of 64</span>
+          <span>Round of 32</span>
+          <span>Sweet 16</span>
+          <span>Elite 8</span>
+        </div>
+        <div className="w-32 md:w-48 text-center">Final 4</div>
+        <div className="flex-1 flex justify-around">
+          <span>Elite 8</span>
+          <span>Sweet 16</span>
+          <span>Round of 32</span>
+          <span>Round of 64</span>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 p-8 overflow-hidden">
-        {currentView === 'leaderboard' ? (
-          <LeaderboardView leaderboard={leaderboard} />
-        ) : (
-          <ResultsView results={recentResults} />
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="bg-navy-800 border-t border-navy-700 px-8 py-3">
-        <div className="flex justify-between items-center text-sm">
-          <div className="text-navy-400">{lockInfo}</div>
-          <div className="text-navy-500">
-            Auto-refreshing • {new Date().toLocaleTimeString()}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function LeaderboardView({ leaderboard }: { leaderboard: LeaderboardEntry[] }) {
-  return (
-    <div className="h-full flex flex-col">
-      <h2 className="text-3xl font-bold mb-6 text-center text-white">
-        🏆 Leaderboard
-      </h2>
-      
-      <div className="flex-1 bg-navy-800 rounded-2xl overflow-hidden">
-        <div className="grid grid-cols-5 gap-4 px-6 py-4 bg-navy-700 text-navy-300 font-semibold text-sm">
-          <div>Rank</div>
-          <div className="col-span-2">Player</div>
-          <div className="text-right">Points</div>
-          <div className="text-right">Status</div>
-        </div>
+      {/* Main Bracket */}
+      <div className="relative z-10 flex items-stretch min-h-[80vh] px-2">
         
-        <div className="divide-y divide-navy-700">
-          {leaderboard.length > 0 ? leaderboard.slice(0, 12).map((entry, i) => (
-            <div key={entry.id} className={`grid grid-cols-5 gap-4 px-6 py-4 ${i < 3 ? 'bg-navy-700/50' : ''}`}>
-              <div className={`font-bold text-2xl ${i === 0 ? 'text-amber-400' : i === 1 ? 'text-slate-300' : i === 2 ? 'text-amber-600' : 'text-navy-400'}`}>
-                #{entry.rank}
-              </div>
-              <div className="col-span-2 text-lg font-medium truncate">{entry.name}</div>
-              <div className="text-right text-xl font-bold">{entry.totalPoints}</div>
-              <div className="text-right">
-                {entry.isPerfect ? (
-                  <span className="bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-bold">PERFECT</span>
-                ) : (
-                  <span className="text-navy-400 text-sm">+{entry.possibleRemainingPoints} possible</span>
-                )}
-              </div>
-            </div>
-          )) : (
-            <div className="text-center py-16 text-navy-500 text-xl">
-              No brackets submitted yet
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ResultsView({ results }: { results: RecentResult[] }) {
-  return (
-    <div className="h-full flex flex-col">
-      <h2 className="text-3xl font-bold mb-6 text-center text-white">
-        🚨 Recent Results
-      </h2>
-      
-      <div className="flex-1 bg-navy-800 rounded-2xl p-6">
-        {results.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4">
-            {results.slice(0, 8).map((result) => (
-              <div key={result.id} className="bg-navy-700 rounded-xl p-5 border-l-4 border-l-navy-400">
-                <div className="text-lg font-medium text-white mb-2">{result.matchDescription}</div>
-                <div className="text-emerald-400 font-bold text-xl">Winner: {result.winner}</div>
-              </div>
+        {/* Left Side Bracket */}
+        <div className="flex-1 flex">
+          {/* Left Regions - R64 */}
+          <div className="flex flex-col justify-around py-2 w-[140px] md:w-[180px]">
+            {REGIONS.left.map(region => (
+              <RegionColumn 
+                key={region} 
+                region={region}
+                entrants={getEntrantsByRegion(region)}
+                side="left"
+              />
             ))}
           </div>
-        ) : (
-          <div className="flex items-center justify-center h-full text-navy-500 text-xl">
-            No results yet — tournament hasn't started
+          
+          {/* R32 */}
+          <RoundColumn 
+            matches={[...getMatchesByRoundAndRegion('R32', REGIONS.left[0]), ...getMatchesByRoundAndRegion('R32', REGIONS.left[1])]}
+            side="left"
+          />
+          
+          {/* S16 */}
+          <RoundColumn 
+            matches={[...getMatchesByRoundAndRegion('S16', REGIONS.left[0]), ...getMatchesByRoundAndRegion('S16', REGIONS.left[1])]}
+            side="left"
+          />
+          
+          {/* E8 */}
+          <RoundColumn 
+            matches={[...getMatchesByRoundAndRegion('E8', REGIONS.left[0]), ...getMatchesByRoundAndRegion('E8', REGIONS.left[1])]}
+            side="left"
+          />
+
+          {/* F4 Left */}
+          <RoundColumn 
+            matches={matches.filter(m => m.round === 'F4' && m.matchNumber === 1)}
+            side="left"
+            isFinal
+          />
+        </div>
+
+        {/* Center - Champion */}
+        <div className="w-32 md:w-48 flex flex-col items-center justify-center">
+          <div className="text-center mb-4">
+            <div className="text-[#7eb8ff] text-sm font-bold mb-1">Mar 25-29</div>
           </div>
-        )}
+          
+          <div className="bg-[#0d2847] border-2 border-[#3d8eff] rounded-lg p-4 mb-4">
+            <div className="text-[#ffd700] text-lg font-bold text-center mb-2">Champion</div>
+            {(() => {
+              const champMatch = matches.find(m => m.round === 'CHAMP')
+              return champMatch?.winnerEntrant ? (
+                <div className="text-white text-center font-bold text-lg">
+                  {champMatch.winnerEntrant.displayName}
+                </div>
+              ) : (
+                <div className="text-[#5a7a9a] text-center text-sm">TBD</div>
+              )
+            })()}
+          </div>
+
+          <div className="text-center">
+            <div className="bg-[#0d2847] border border-[#3d8eff] rounded px-3 py-2">
+              <div className="text-[#3d8eff] text-xs font-bold">LEASE</div>
+              <div className="text-white text-xs font-bold">END</div>
+              <div className="text-[#ffd700] text-lg font-black">MARCH</div>
+              <div className="text-[#ffd700] text-lg font-black">MADNESS</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side Bracket */}
+        <div className="flex-1 flex flex-row-reverse">
+          {/* Right Regions - R64 */}
+          <div className="flex flex-col justify-around py-2 w-[140px] md:w-[180px]">
+            {REGIONS.right.map(region => (
+              <RegionColumn 
+                key={region} 
+                region={region}
+                entrants={getEntrantsByRegion(region)}
+                side="right"
+              />
+            ))}
+          </div>
+          
+          {/* R32 */}
+          <RoundColumn 
+            matches={[...getMatchesByRoundAndRegion('R32', REGIONS.right[0]), ...getMatchesByRoundAndRegion('R32', REGIONS.right[1])]}
+            side="right"
+          />
+          
+          {/* S16 */}
+          <RoundColumn 
+            matches={[...getMatchesByRoundAndRegion('S16', REGIONS.right[0]), ...getMatchesByRoundAndRegion('S16', REGIONS.right[1])]}
+            side="right"
+          />
+          
+          {/* E8 */}
+          <RoundColumn 
+            matches={[...getMatchesByRoundAndRegion('E8', REGIONS.right[0]), ...getMatchesByRoundAndRegion('E8', REGIONS.right[1])]}
+            side="right"
+          />
+
+          {/* F4 Right */}
+          <RoundColumn 
+            matches={matches.filter(m => m.round === 'F4' && m.matchNumber === 2)}
+            side="right"
+            isFinal
+          />
+        </div>
       </div>
+
+      {/* Date Labels - Bottom */}
+      <div className="relative z-10 flex justify-between items-center px-4 text-xs md:text-sm font-bold text-[#7eb8ff] mt-2 pb-4">
+        <div className="flex-1 flex justify-around">
+          <span>Mar 4-6</span>
+          <span>Mar 7-11</span>
+          <span>Mar 12-14</span>
+          <span>Mar 15-19</span>
+          <span>Mar 20-22</span>
+        </div>
+        <div className="w-32 md:w-48 text-center">
+          <span className="text-lg font-black text-white">LEASE</span>
+          <span className="text-lg font-black text-[#3d8eff]">END</span>
+        </div>
+        <div className="flex-1 flex justify-around">
+          <span>Mar 20-22</span>
+          <span>Mar 15-19</span>
+          <span>Mar 12-14</span>
+          <span>Mar 7-11</span>
+          <span>Mar 4-6</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RegionColumn({ region, entrants, side }: { region: string; entrants: Entrant[]; side: 'left' | 'right' }) {
+  // Create matchups (1v16, 8v9, 5v12, 4v13, 6v11, 3v14, 7v10, 2v15)
+  const matchupOrder = [
+    [1, 16], [8, 9], [5, 12], [4, 13], [6, 11], [3, 14], [7, 10], [2, 15]
+  ]
+
+  return (
+    <div className="flex-1 flex flex-col justify-around">
+      {matchupOrder.map(([topSeed, bottomSeed], i) => {
+        const topEntrant = entrants.find(e => e.seed === topSeed)
+        const bottomEntrant = entrants.find(e => e.seed === bottomSeed)
+        
+        return (
+          <div key={i} className="flex flex-col gap-[2px]">
+            <EntrantRow entrant={topEntrant} side={side} showSeed />
+            <EntrantRow entrant={bottomEntrant} side={side} showSeed />
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function RoundColumn({ matches, side, isFinal = false }: { matches: Match[]; side: 'left' | 'right'; isFinal?: boolean }) {
+  return (
+    <div className={`flex flex-col justify-around py-2 ${isFinal ? 'w-[100px] md:w-[130px]' : 'w-[100px] md:w-[140px]'}`}>
+      {matches.map((match, i) => (
+        <div key={match.id} className="flex flex-col gap-[2px]">
+          <EntrantRow 
+            entrant={match.leftEntrant || (match.winnerEntrant ? null : undefined)} 
+            side={side}
+            isWinner={match.winnerEntrant?.id === match.leftEntrant?.id}
+            showTBD={!match.leftEntrant}
+          />
+          <EntrantRow 
+            entrant={match.rightEntrant || (match.winnerEntrant ? null : undefined)} 
+            side={side}
+            isWinner={match.winnerEntrant?.id === match.rightEntrant?.id}
+            showTBD={!match.rightEntrant}
+          />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function EntrantRow({ 
+  entrant, 
+  side, 
+  showSeed = false, 
+  isWinner = false,
+  showTBD = false 
+}: { 
+  entrant?: Entrant | null
+  side: 'left' | 'right'
+  showSeed?: boolean
+  isWinner?: boolean
+  showTBD?: boolean
+}) {
+  const name = entrant?.displayName || (showTBD ? '' : '—')
+  const shortName = name.length > 12 ? name.slice(0, 11) + '.' : name
+  
+  return (
+    <div 
+      className={`
+        flex items-center gap-1 px-1 py-[2px] text-[10px] md:text-xs
+        ${side === 'right' ? 'flex-row-reverse text-right' : ''}
+        ${isWinner ? 'bg-[#1a5a3a] text-white' : 'bg-[#0d2847]/80 text-[#a0c4e8]'}
+        ${!entrant && !showTBD ? 'opacity-50' : ''}
+        rounded-sm border border-[#1a3a5c]
+      `}
+    >
+      {showSeed && entrant && (
+        <span className={`font-bold ${side === 'right' ? 'ml-1' : 'mr-1'} text-[#5a9fff] min-w-[14px]`}>
+          {entrant.seed}
+        </span>
+      )}
+      <span className="truncate flex-1 font-medium">
+        {shortName}
+      </span>
     </div>
   )
 }
